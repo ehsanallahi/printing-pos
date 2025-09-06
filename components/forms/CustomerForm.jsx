@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -48,6 +49,7 @@ export function CustomerForm({ isOpen, setIsOpen, onCustomerAdded, onCustomerUpd
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerData),
       });
+      toast.success("Customer created successfully!");
       onCustomerAdded(); // Tell the parent page to refresh its list
     }
     setIsOpen(false);

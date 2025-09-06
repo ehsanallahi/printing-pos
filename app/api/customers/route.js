@@ -4,14 +4,34 @@ import { NextResponse } from 'next/server';
 const prisma = new PrismaClient();
 
 // GET Function: To fetch all customers
-export async function GET() {
+
+export async function GET(request) {
   try {
-    const customers = await prisma.customer.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-    return NextResponse.json(customers);
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page')) || 1;
+    const searchTerm = searchParams.get('search') || '';
+    const pageSize = 10;
+
+    const whereClause = searchTerm
+      ? {
+          name: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        }
+      : {};
+
+    const [customers, totalCount] = await Promise.all([
+      prisma.customer.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+      }),
+      prisma.customer.count({ where: whereClause }),
+    ]);
+
+    return NextResponse.json({ customers, totalCount });
   } catch (error) {
     console.error("Fetch Customers Error:", error);
     return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 });

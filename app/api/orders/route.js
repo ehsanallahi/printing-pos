@@ -7,35 +7,46 @@ const prisma = new PrismaClient();
 
 
 
+// Replace the existing GET function
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
-    // NEW: Get the search term from the URL
     const searchTerm = searchParams.get('search') || '';
     const pageSize = 10;
 
-    // NEW: Define a 'where' clause for our queries
+    // UPDATED: The where clause now searches in two fields
     const whereClause = searchTerm
       ? {
-          customer: {
-            name: {
-              contains: searchTerm,
-              mode: 'insensitive', // Makes search case-insensitive
+          OR: [
+            {
+              customer: {
+                name: {
+                  contains: searchTerm,
+                  mode: 'insensitive',
+                },
+              },
             },
-          },
+            {
+              customer: {
+                phone: {
+                  contains: searchTerm,
+                },
+              },
+            },
+          ],
         }
       : {};
 
     const [orders, totalCount] = await Promise.all([
       prisma.order.findMany({
-        where: whereClause, // Apply the where clause
+        where: whereClause,
         orderBy: { createdAt: 'desc' },
         include: { customer: true },
         take: pageSize,
         skip: (page - 1) * pageSize,
       }),
-      prisma.order.count({ where: whereClause }), // Apply it to the count as well
+      prisma.order.count({ where: whereClause }),
     ]);
 
     return NextResponse.json({ orders, totalCount });

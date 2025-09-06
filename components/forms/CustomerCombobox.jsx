@@ -21,11 +21,10 @@ export function CustomerCombobox({ value, onValueChange }) {
   const [open, setOpen] = useState(false);
   const [customers, setCustomers] = useState([]);
 
-  // Fetch all customers to populate the dropdown
   useEffect(() => {
     const fetchAllCustomers = async () => {
       try {
-        const response = await fetch('/api/customers');
+        const response = await fetch('/api/customers/list');
         const data = await response.json();
         if (Array.isArray(data)) {
           setCustomers(data);
@@ -37,6 +36,10 @@ export function CustomerCombobox({ value, onValueChange }) {
     fetchAllCustomers();
   }, []);
 
+  const selectedCustomer = customers.find(
+    (customer) => customer.name.toLowerCase() === value?.toLowerCase()
+  );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -44,36 +47,47 @@ export function CustomerCombobox({ value, onValueChange }) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between h-10"
         >
-          {value
-            ? customers.find((customer) => customer.name.toLowerCase() === value.toLowerCase())?.name
-            : "Select customer..."}
+          {selectedCustomer ? (
+            <div className="flex flex-col items-start">
+              <span className="font-semibold">{selectedCustomer.name}</span>
+              <span className="text-xs text-muted-foreground -mt-1">
+                {selectedCustomer.phone || 'No phone'}
+              </span>
+            </div>
+          ) : (
+            "Select customer..."
+          )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0">
         <Command>
-          <CommandInput placeholder="Search customer..." />
+          <CommandInput placeholder="Search by name or phone..." />
           <CommandList>
             <CommandEmpty>No customer found.</CommandEmpty>
             <CommandGroup>
               {customers.map((customer) => (
                 <CommandItem
                   key={customer.id}
-                  value={customer.name}
-                  onSelect={(currentValue) => {
-                    onValueChange(currentValue === value ? "" : currentValue);
+                  // UPDATED: The searchable value now contains both name and phone
+                  value={`${customer.name} ${customer.phone}`}
+                  // UPDATED: onSelect now correctly passes only the name back to the form
+                  onSelect={() => {
+                    onValueChange(customer.name);
                     setOpen(false);
                   }}
                 >
                   <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === customer.name ? "opacity-100" : "opacity-0"
-                    )}
+                    className={cn("mr-2 h-4 w-4", value === customer.name ? "opacity-100" : "opacity-0")}
                   />
-                  {customer.name}
+                  <div className="flex flex-col">
+                    <span>{customer.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {customer.phone || 'No phone'}
+                    </span>
+                  </div>
                 </CommandItem>
               ))}
             </CommandGroup>

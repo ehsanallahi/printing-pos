@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { MoreHorizontal, Search } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import { toast } from "sonner"; // Make sure toast is imported
 import { AddNewOrderForm } from "@/components/forms/AddNewOrderForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -48,16 +51,14 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  // Debounce effect to wait for user to stop typing
   useEffect(() => {
     const timerId = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      setCurrentPage(1); // Reset to page 1 on a new search
+      setCurrentPage(1);
     }, 500);
     return () => clearTimeout(timerId);
   }, [searchTerm]);
 
-  // Main data fetching function
   const fetchOrders = async (page, search) => {
     setIsLoading(true);
     try {
@@ -74,24 +75,18 @@ export default function OrdersPage() {
     setIsLoading(false);
   };
 
-  // useEffect now depends on currentPage and the debounced search term
   useEffect(() => {
     fetchOrders(currentPage, debouncedSearchTerm);
   }, [currentPage, debouncedSearchTerm]);
 
-  // Handler Functions
-  const handleOpenCreateDialog = () => {
-    setEditingOrder(null);
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenEditDialog = (order) => {
-    setEditingOrder(order);
-    setIsDialogOpen(true);
-  };
+  // --- Handler Functions ---
+  const handleOpenCreateDialog = () => { setEditingOrder(null); setIsDialogOpen(true); };
+  const handleOpenEditDialog = (order) => { setEditingOrder(order); setIsDialogOpen(true); };
 
   const handleOrderUpdated = (updatedOrder) => {
-    setOrders(orders.map(order => order.id === updatedOrder.id ? updatedOrder : order));
+    // ADDED: Toast notification for successful update
+    toast.success("Order updated successfully!");
+    setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
   };
   
   const handleStatusChange = async (orderId, newStatus) => {
@@ -101,40 +96,44 @@ export default function OrdersPage() {
       body: JSON.stringify({ status: newStatus }),
     });
     const updatedOrder = await response.json();
+    // ADDED: Toast notification for status change
+    toast.info(`Order status changed to "${newStatus}".`);
     handleOrderUpdated(updatedOrder);
   };
 
   const handleDeleteOrder = async (orderId) => {
     await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
-    fetchOrders(currentPage, debouncedSearchTerm); // Refetch with current search
+    // ADDED: Toast notification for successful deletion
+    toast.error("Order has been deleted.");
+    fetchOrders(currentPage, debouncedSearchTerm);
   };
   
   return (
     <div className="flex flex-col gap-4">
-      <AddNewOrderForm
+       <AddNewOrderForm
         isOpen={isDialogOpen}
         setIsOpen={setIsDialogOpen}
-        onOrderAdded={() => fetchOrders(currentPage, debouncedSearchTerm)}
+        onOrderAdded={() => {
+          toast.success("Order created successfully!");
+          fetchOrders(1, ""); // Go to first page after adding
+        }}
         onOrderUpdated={handleOrderUpdated}
         initialData={editingOrder}
       />
-
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Orders</h1>
         <Button onClick={handleOpenCreateDialog}>+ Add New Order</Button>
       </div>
-      
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          type="search"
-          placeholder="Search by customer name..."
-          className="pl-8 sm:w-[300px]"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+  type="search"
+  placeholder="Search by name or phone..."
+  className="pl-8 sm:w-[300px]"
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+/>
       </div>
-
       <div className="rounded-xl border shadow-sm">
         <Table>
           <TableHeader>
@@ -172,6 +171,10 @@ export default function OrdersPage() {
                       <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        {/* NEW: View Details button that navigates to the details page */}
+                        <DropdownMenuItem onSelect={() => router.push(`/orders/${order.id}`)}>
+                          View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => handleOpenEditDialog(order)}>Edit</DropdownMenuItem>
                         <AlertDialog>
                           <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem></AlertDialogTrigger>
@@ -191,7 +194,6 @@ export default function OrdersPage() {
           </TableBody>
         </Table>
       </div>
-
       <div className="flex items-center justify-end space-x-2 py-4">
         <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1 || isLoading}>Previous</Button>
         <span className="text-sm">Page {currentPage} of {totalPages}</span>

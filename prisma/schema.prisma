@@ -1,40 +1,51 @@
-// Part 1: Tells Prisma what database you're using (SQLite).
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
 }
 
-// Part 2: Tells Prisma to generate the client code for you.
 generator client {
   provider = "prisma-client-js"
 }
 
-// Part 3: The blueprint for your "Customer" table.
 model Customer {
   id        String   @id @default(cuid())
-  name      String   @unique // <-- Add @unique here
-  phone     String?
+  name      String   @unique
+  phone     String?  @unique 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   orders    Order[]
 }
 
-// Part 4: The blueprint for your "Order" table.
 model Order {
-  id          String   @id @default(cuid())
-  
-  // FIX: This now properly links an Order to a Customer.
-  customer    Customer @relation(fields: [customerId], references: [id])
+  id          String    @id @default(cuid())
+  customer    Customer  @relation(fields: [customerId], references: [id])
   customerId  String
-
   mediaType   String
   status      String
-  width       Float    @default(0)
-  height      Float    @default(0)
-  quantity    Int      @default(1)
-  rate        Float    @default(0)
+  width       Float     @default(0)
+  height      Float     @default(0)
+  quantity    Int       @default(1)
+  rate        Float     @default(0)
   totalAmount Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // NEW: Field to track the sum of all payments made for this order
+  paidAmount  Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  // NEW: An order can have many payments
+  payments    Payment[]
+}
+
+// NEW: A model to store each individual payment transaction
+model Payment {
+  id        String   @id @default(cuid())
+  amount    Float
+  method    String // e.g., "Cash", "Card", "Bank Transfer"
+  createdAt DateTime @default(now())
+  
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+}
+model MediaType {
+  id   String @id @default(cuid())
+  name String @unique
 }

@@ -1,18 +1,23 @@
+"use client"; // This component uses client-side hooks, so this is needed
+
 import Link from "next/link";
+// NEW: Import the usePathname hook to detect the current page
+import { usePathname } from "next/navigation";
 import {
   Home,
   Users,
   Package,
-  Search
+  Settings,
+  UserRoundSearch
 } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 
-// This is the main frame for our dashboard.
-// The "{children}" part is special. It's where the content
-// of our actual pages (like the dashboard, orders, or customers page) will be displayed.
 export default function DashboardLayout({ children }) {
+  // NEW: Get the current URL path
+  const pathname = usePathname();
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-
       {/* Sidebar Navigation */}
       <div className="hidden border-r bg-muted/40 md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
@@ -24,27 +29,52 @@ export default function DashboardLayout({ children }) {
           </div>
           <div className="flex-1">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+              {/* UPDATED: Links now have conditional classNames for highlighting */}
               <Link
                 href="/dashboard"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+                  pathname === "/dashboard" ? "bg-muted text-primary" : "text-muted-foreground"
+                }`}
               >
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
               <Link
                 href="/orders"
-                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+                  pathname.startsWith("/orders") ? "bg-muted text-primary" : "text-muted-foreground"
+                }`}
               >
                 <Package className="h-4 w-4" />
                 Orders
               </Link>
               <Link
                 href="/customers"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+                  pathname === "/customers" ? "bg-muted text-primary" : "text-muted-foreground"
+                }`}
               >
                 <Users className="h-4 w-4" />
                 Customers
               </Link>
+              <Link
+                href="/settings"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+                  pathname === "/settings" ? "bg-muted text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Link>
+               <Link
+    href="/track-customer"
+    className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
+      pathname === "/track-customer" ? "bg-muted text-primary" : "text-muted-foreground"
+    }`}
+  >
+    <UserRoundSearch className="h-4 w-4" />
+    Find Customer 
+  </Link>
             </nav>
           </div>
         </div>
@@ -53,17 +83,17 @@ export default function DashboardLayout({ children }) {
       {/* Main Content Area */}
       <div className="flex flex-col">
         <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-          {/* This is where a mobile sidebar button would go */}
           <div className="w-full flex-1">
-             {/* We can add a search bar here later */}
+            {/* Header content can go here */}
           </div>
-          {/* We can add a user profile button here later */}
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
           {children}
         </main>
       </div>
-
+      
+      {/* ADDED: The Toaster component for notifications */}
+      <Toaster richColors />
     </div>
   );
 }

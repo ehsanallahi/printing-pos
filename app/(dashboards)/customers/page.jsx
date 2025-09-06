@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { CustomerForm } from "@/components/forms/CustomerForm";
 import {
   DropdownMenu,
@@ -33,37 +34,46 @@ import {
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  // ADDED: State to hold the customer being edited
   const [editingCustomer, setEditingCustomer] = useState(null);
+  
+  // State for search and pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchCustomers = async () => {
-    const response = await fetch('/api/customers');
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1); // Reset to first page on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const fetchCustomers = async (page, search) => {
+    setIsLoading(true);
+    const response = await fetch(`/api/customers?page=${page}&search=${search}`);
     const data = await response.json();
-    if (Array.isArray(data)) setCustomers(data);
+    if (data.customers) {
+      setCustomers(data.customers);
+      setTotalPages(Math.ceil(data.totalCount / 10));
+    }
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    fetchCustomers(currentPage, debouncedSearchTerm);
+  }, [currentPage, debouncedSearchTerm]);
 
-  // --- Handler Functions ---
-  const handleOpenCreateDialog = () => {
-    setEditingCustomer(null);
-    setIsDialogOpen(true);
-  };
-  
-  const handleOpenEditDialog = (customer) => {
-    setEditingCustomer(customer);
-    setIsDialogOpen(true);
-  };
-  
-  const handleCustomerUpdated = (updatedCustomer) => {
-    setCustomers(customers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
-  };
-  
+  // Handler Functions
+  const handleOpenCreateDialog = () => { setEditingCustomer(null); setIsDialogOpen(true); };
+  const handleOpenEditDialog = (customer) => { setEditingCustomer(customer); setIsDialogOpen(true); };
+  const handleCustomerUpdated = (updatedCustomer) => { setCustomers(customers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c)); };
   const handleDeleteCustomer = async (customerId) => {
     await fetch(`/api/customers/${customerId}`, { method: 'DELETE' });
-    setCustomers(customers.filter(c => c.id !== customerId));
+    fetchCustomers(currentPage, debouncedSearchTerm); // Refetch data
   };
 
   return (
@@ -71,7 +81,7 @@ export default function CustomersPage() {
       <CustomerForm
         isOpen={isDialogOpen}
         setIsOpen={setIsDialogOpen}
-        onCustomerAdded={fetchCustomers}
+        onCustomerAdded={() => fetchCustomers(1, "")} // On new customer, go to page 1 with no search
         onCustomerUpdated={handleCustomerUpdated}
         initialData={editingCustomer}
       />
@@ -79,6 +89,11 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Customers</h1>
         <Button onClick={handleOpenCreateDialog}>+ Add New Customer</Button>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input type="search" placeholder="Search by customer name..." className="pl-8 sm:w-[300px]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
 
       <div className="rounded-xl border shadow-sm">
@@ -92,34 +107,24 @@ export default function CustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers.map((customer) => (
+            {isLoading ? (
+              <TableRow><TableCell colSpan={4} className="h-24 text-center">Loading...</TableCell></TableRow>
+            ) : customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-medium">{customer.name}</TableCell>
                 <TableCell>{customer.phone || 'N/A'}</TableCell>
                 <TableCell>{new Date(customer.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-                    </DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {/* WIRED UP: Edit Button */}
                       <DropdownMenuItem onSelect={() => handleOpenEditDialog(customer)}>Edit</DropdownMenuItem>
-                      {/* WIRED UP: Delete Button with Confirmation */}
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem>
-                        </AlertDialogTrigger>
+                        <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem></AlertDialogTrigger>
                         <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>This will permanently delete the customer and all their associated orders.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteCustomer(customer.id)}>Continue</AlertDialogAction>
-                          </AlertDialogFooter>
+                          <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the customer.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteCustomer(customer.id)}>Continue</AlertDialogAction></AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
                     </DropdownMenuContent>
@@ -129,6 +134,12 @@ export default function CustomersPage() {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1 || isLoading}>Previous</Button>
+        <span className="text-sm">Page {currentPage} of {totalPages}</span>
+        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || isLoading}>Next</Button>
       </div>
     </div>
   );
