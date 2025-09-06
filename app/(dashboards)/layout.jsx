@@ -1,5 +1,7 @@
 "use client"; // This component uses client-side hooks, so this is needed
-
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 // NEW: Import the usePathname hook to detect the current page
 import { usePathname } from "next/navigation";
@@ -8,14 +10,15 @@ import {
   Users,
   Package,
   Settings,
-  UserRoundSearch
+  UserRoundSearch,
+  LogOut
 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
 export default function DashboardLayout({ children }) {
   // NEW: Get the current URL path
   const pathname = usePathname();
-
+  const { data: session } = useSession();
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       {/* Sidebar Navigation */}
@@ -77,7 +80,16 @@ export default function DashboardLayout({ children }) {
   </Link>
             </nav>
           </div>
+          <Button 
+                variant="ghost" 
+                size="icon" 
+                className="ml-auto"
+                onClick={() => signOut({ callbackUrl: '/login' })}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
         </div>
+        
       </div>
 
       {/* Main Content Area */}
