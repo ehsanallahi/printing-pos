@@ -4,35 +4,59 @@ import { NextResponse } from 'next/server';
 const prisma = new PrismaClient();
 
 // GET Function: To fetch all orders from the database
-export async function GET() {
+
+
+
+export async function GET(request) {
   try {
-    const orders = await prisma.order.findMany({
-     orderBy: {
-    createdAt: 'desc',
-  },
-  include: {
-   include: { customer: true }, // This tells Prisma to fetch the related customer data
-  },
-    });
-    return NextResponse.json(orders);
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page')) || 1;
+    // NEW: Get the search term from the URL
+    const searchTerm = searchParams.get('search') || '';
+    const pageSize = 10;
+
+    // NEW: Define a 'where' clause for our queries
+    const whereClause = searchTerm
+      ? {
+          customer: {
+            name: {
+              contains: searchTerm,
+              mode: 'insensitive', // Makes search case-insensitive
+            },
+          },
+        }
+      : {};
+
+    const [orders, totalCount] = await Promise.all([
+      prisma.order.findMany({
+        where: whereClause, // Apply the where clause
+        orderBy: { createdAt: 'desc' },
+        include: { customer: true },
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+      }),
+      prisma.order.count({ where: whereClause }), // Apply it to the count as well
+    ]);
+
+    return NextResponse.json({ orders, totalCount });
   } catch (error) {
+    console.error("Fetch Orders Error:", error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
-
 // POST Function: To create a new order in the database
 export async function POST(request) {
   try {
     const data = await request.json();
 
-    // New Logic: Find an existing customer by name, or create a new one.
+    // Find an existing customer by name, or create a new one.
     const customer = await prisma.customer.upsert({
       where: { name: data.customer },
-      update: {}, // We can add logic to update customer info here later if needed
+      update: {},
       create: { name: data.customer },
     });
 
-    // Now, create the order using the found or newly created customer's ID
+    // Create the order using the customer's ID
     const newOrder = await prisma.order.create({
       data: {
         mediaType: data.mediaType,
@@ -42,13 +66,17 @@ export async function POST(request) {
         quantity: data.quantity,
         rate: data.rate,
         totalAmount: data.totalAmount,
-        customerId: customer.id, // Link the order to the customer
+        // FIX: Use the 'connect' syntax to link the order to the customer relation.
+        customer: {
+          connect: {
+            id: customer.id,
+          },
+        },
       },
     });
 
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {
-    // Add a log to see the error in your terminal
     console.error("Create Order Error:", error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }

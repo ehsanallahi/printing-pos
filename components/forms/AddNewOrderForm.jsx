@@ -33,7 +33,7 @@ export function AddNewOrderForm({ isOpen, setIsOpen, onOrderAdded, onOrderUpdate
   useEffect(() => {
     if (isEditMode && initialData) {
       // Pre-fill form for editing
-      setCustomerName(initialData.customer || "");
+      setCustomerName(initialData.customer?.name || "");
       setMediaType(initialData.mediaType || "");
       setWidth(String(initialData.width || ""));
       setHeight(String(initialData.height || ""));
