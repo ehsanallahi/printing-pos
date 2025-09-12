@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function InvoicePage() {
   const [order, setOrder] = useState(null);
@@ -20,78 +21,109 @@ export default function InvoicePage() {
   }, [orderId]);
 
   if (!order) {
-    return <div className="text-center p-10">Loading Invoice...</div>;
+    return <div className="p-10 text-center">Loading Invoice...</div>;
   }
 
   const balanceDue = order.totalAmount - order.paidAmount;
 
   return (
-    <div className="bg-white text-black max-w-4xl mx-auto p-8 my-10 rounded-lg shadow-lg">
-      <header className="flex justify-between items-start mb-8 border-b pb-4">
+    <div className="max-w-4xl p-8 mx-auto my-10 bg-white border rounded-lg shadow-sm text-black">
+      {/* --- Header with Your Business Info --- */}
+      <header className="flex items-start justify-between pb-6 mb-8 border-b">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Your Print Shop</h1>
-          <p className="text-gray-500">123 Print Street, Lahore, Pakistan</p>
+          <h1 className="text-2xl font-bold">SRA Digital Printers</h1>
+          <p className="text-sm text-gray-500">Shop # 2 Rehan Center, Shami Park Mobile Market, Main Chungi Amer Sidhu, Lahore</p>
+          <p className="text-sm text-gray-500">Phone: 0309 4161568</p>
         </div>
         <div className="text-right">
-          <h2 className="text-2xl font-semibold uppercase text-gray-700">Invoice</h2>
-          <p className="text-gray-500">#{order.id.substring(0, 7).toUpperCase()}</p>
-          <p className="text-gray-500">Date: {new Date(order.createdAt).toLocaleDateString()}</p>
+          <h2 className="text-3xl font-bold uppercase text-gray-800">Invoice</h2>
+          <p className="text-sm text-gray-500">#{order.id.substring(0, 7).toUpperCase()}</p>
         </div>
       </header>
 
-      <section className="mb-8">
-        <h3 className="font-semibold text-lg mb-2 border-b pb-1">Bill To:</h3>
-        <p className="font-bold text-gray-800">{order.customer.name}</p>
-        <p className="text-gray-600">{order.customer.phone || 'No phone number'}</p>
-      </section>
-
-      <section>
-        <table className="w-full text-left mb-8">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3">Description</th>
-              <th className="p-3 text-center">Size (ft)</th>
-              <th className="p-3 text-center">Qty</th>
-              <th className="p-3 text-right">Rate</th>
-              <th className="p-3 text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b">
-              <td className="p-3">{order.mediaType}</td>
-              <td className="p-3 text-center">{order.width} x {order.height}</td>
-              <td className="p-3 text-center">{order.quantity}</td>
-              <td className="p-3 text-right">Rs. {order.rate.toFixed(2)}</td>
-              <td className="p-3 text-right">Rs. {order.totalAmount.toLocaleString()}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section className="flex justify-end mb-8">
-        <div className="w-full md:w-1/3">
-          <div className="flex justify-between py-2 border-b">
-            <span className="font-semibold text-gray-700">Subtotal</span>
-            <span>Rs. {order.totalAmount.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between py-2 border-b text-green-600">
-            <span className="font-semibold">Amount Paid</span>
-            <span>Rs. {order.paidAmount.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between py-2 bg-gray-100 rounded-b-lg px-2">
-            <span className="font-bold text-lg">Balance Due</span>
-            <span className="font-bold text-lg">Rs. {balanceDue.toLocaleString()}</span>
+      {/* --- Customer Info and Dates --- */}
+      <section className="grid grid-cols-2 gap-4 mb-8">
+        <div>
+          <h3 className="mb-1 font-semibold text-gray-700">Bill To</h3>
+          <p className="font-bold">{order.customer.name}</p>
+          <p className="text-sm text-gray-600">{order.customer.phone || 'No phone'}</p>
+        </div>
+        <div className="text-right">
+          <div className="mb-2">
+            <span className="font-semibold text-gray-700">Invoice Date: </span>
+            <span>{new Date(order.createdAt).toLocaleDateString()}</span>
           </div>
         </div>
       </section>
 
-      <footer className="text-center text-gray-500 text-sm">
-        <p>Thank you for your business!</p>
-        {/* The print button will be hidden when printing */}
-        <Button onClick={() => window.print()} className="mt-6 print:hidden">
-          <Printer className="mr-2 h-4 w-4" />
-          Print Invoice
-        </Button>
+      {/* --- Items Table --- */}
+      <section className="mb-8">
+        <Table>
+          <TableHeader className="bg-gray-50">
+            <TableRow>
+              <TableHead>Item Description</TableHead>
+              <TableHead className="text-center">Quantity</TableHead>
+              <TableHead className="text-right">Unit Price</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>
+                <p className="font-medium">{order.mediaType}</p>
+                <p className="text-sm text-gray-500">{order.width} ft x {order.height} ft</p>
+              </TableCell>
+              <TableCell className="text-center">{order.quantity}</TableCell>
+              <TableCell className="text-right">Rs. {order.rate.toFixed(2)}</TableCell>
+              <TableCell className="text-right">Rs. {order.totalAmount.toLocaleString()}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </section>
+      
+      {/* --- NEW: Payment History Table --- */}
+      {order.payments && order.payments.length > 0 && (
+        <section className="mb-8">
+          <h3 className="mb-2 text-lg font-semibold text-gray-700">Payment History</h3>
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead>Payment Date</TableHead>
+                <TableHead>Payment Method</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {order.payments.map(payment => (
+                <TableRow key={payment.id}>
+                  <TableCell>{new Date(payment.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>{payment.method}</TableCell>
+                  <TableCell className="text-right">Rs. {payment.amount.toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
+      )}
+
+      {/* --- Financial Summary --- */}
+      <section className="flex justify-end mb-8">
+        <div className="w-full md:w-2/5 space-y-2">
+          <div className="flex justify-between font-bold border-t pt-2"><span>Total:</span><span>Rs. {order.totalAmount.toLocaleString()}</span></div>
+          <div className="flex justify-between text-green-600"><span>Amount Paid:</span><span>Rs. {order.paidAmount.toLocaleString()}</span></div>
+          <div className="flex justify-between p-2 font-bold text-lg rounded-md bg-gray-100"><span>Balance Due:</span><span>Rs. {balanceDue.toLocaleString()}</span></div>
+        </div>
+      </section>
+      
+      {/* --- Footer --- */}
+      <footer className="pt-6 mt-8 border-t">
+        <div className="text-center">
+          <p className="text-sm text-gray-500 mb-6">Thank you for your business!</p>
+          <Button onClick={() => window.print()} className="print:hidden">
+            <Printer className="w-4 h-4 mr-2" />
+            Print Invoice
+          </Button>
+        </div>
       </footer>
     </div>
   );

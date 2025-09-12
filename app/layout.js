@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "PrintShop POS",
+  title: "SRA Digital Printers",
   description: "POS for Printing Agency",
 };
 
