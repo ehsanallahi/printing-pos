@@ -43,10 +43,9 @@ export const authOptions = {
     strategy: 'jwt',
   },
   secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    // UPDATE: Changed signIn page to the root '/'
-    signIn: '/', 
-  },
+ pages: {
+  signIn: '/login', // MUST be '/login'
+},
 };
 
 const handler = NextAuth(authOptions);
