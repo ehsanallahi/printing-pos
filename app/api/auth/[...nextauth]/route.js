@@ -13,30 +13,47 @@ export const authOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-        if (!credentials.email || !credentials.password) {
-          return null;
-        }
+      // ... inside CredentialsProvider({...})
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+async authorize(credentials) {
+  console.log("Authorize function started. Attempting login for:", credentials.email);
 
-        if (!user) {
-          return null;
-        }
+  if (!credentials.email || !credentials.password) {
+    console.log("Credentials missing.");
+    return null;
+  }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.hashedPassword
-        );
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: credentials.email },
+    });
 
-        if (!isPasswordValid) {
-          return null;
-        }
+    if (!user) {
+      console.log("User not found in database.");
+      return null;
+    }
+    console.log("User found in database:", user.email);
 
-        return { id: user.id, email: user.email };
-      },
+    const isPasswordValid = await bcrypt.compare(
+      credentials.password,
+      user.hashedPassword
+    );
+
+    if (!isPasswordValid) {
+      console.log("Password comparison failed.");
+      return null;
+    }
+
+    console.log("Password is valid. Login successful.");
+    return { id: user.id, email: user.email };
+
+  } catch (error) {
+    console.error("CRITICAL ERROR during authorization:", error);
+    return null;
+  }
+},
+
+
     }),
   ],
   session: {
