@@ -1,9 +1,9 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
+// FIX: Replaced local PrismaClient with the shared instance
+import prisma from '@/lib/prisma'; 
+// FIX: Changed 'bcrypt' to 'bcryptjs' to match the installed package
+import bcrypt from 'bcryptjs'; 
 
 export const authOptions = {
   providers: [
@@ -44,7 +44,8 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: '/login',
+    // UPDATE: Changed signIn page to the root '/'
+    signIn: '/', 
   },
 };
 
